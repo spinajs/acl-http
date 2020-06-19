@@ -5,8 +5,6 @@ import { AclPolicy } from "./policies";
 
 export const ACL_CONTROLLER_DESCRIPTOR = Symbol("ACL_CONTROLLER_DESCRIPTOR_SYMBOL");
 
-
-
 function descriptor(callback: (controller: IAclDescriptor, target: any, propertyKey: symbol | string, indexOrDescriptor: number | PropertyDescriptor) => void): any {
     return (target: any, propertyKey: string | symbol, indexOrDescriptor: number | PropertyDescriptor) => {
         let metadata: IAclDescriptor = Reflect.getMetadata(ACL_CONTROLLER_DESCRIPTOR, target.prototype || target);

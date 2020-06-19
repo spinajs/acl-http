@@ -37,11 +37,12 @@
   },
   "homepage": "https://github.com/spinajs/acl-http#readme",
   "dependencies": {
-    "@spinajs/acl": "^1.0.0",
-    "@spinajs/di": "^1.0.17",
+    "@spinajs/acl": "^1.0.1",
+    "@spinajs/di": "^1.0.18",
     "@spinajs/exceptions": "^1.0.3",
-    "@spinajs/http": "^1.0.0",
+    "@spinajs/http": "^1.0.1",
     "@spinajs/log": "^1.0.7",
+    "@spinajs/orm": "^1.0.45",
     "acl": "^0.4.11",
     "argon2": "^0.26.2",
     "entropy-string": "^4.2.0",
@@ -51,7 +52,7 @@
     "uuid": "^8.1.0"
   },
   "devDependencies": {
-    "@spinajs/orm-sqlite": "^1.0.20",
+    "@spinajs/orm-sqlite": "^1.0.22",
     "@types/bunyan": "^1.8.6",
     "@types/chai": "^4.1.7",
     "@types/chai-as-promised": "^7.1.0",

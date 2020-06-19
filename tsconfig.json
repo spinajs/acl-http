@@ -19,8 +19,7 @@
         "emitDecoratorMetadata": true,
         "typeRoots": [
             "./typings"
-        ],
-        
+        ]
     },
     "include": [
         "src/**/*"

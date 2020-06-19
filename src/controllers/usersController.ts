@@ -5,7 +5,8 @@ import { UserSearchDto } from './../dto/user-search-dto';
 import { BaseController, BasePath, Post, Get, Del, Put, LimitDto, Query, OrderDto, Ok, NotFound, Body, IncPkey } from "@spinajs/http";
 import { Resource, Permission } from "../decorators";
 import { InvalidArgument } from "@spinajs/exceptions";
-import { InsertBehaviour } from '@spinajs/acl/node_modules/@spinajs/orm';
+import { InsertBehaviour} from "@spinajs/orm";
+ 
 
 @BasePath("users")
 @Resource("users")
@@ -163,7 +164,7 @@ export class UsersController extends BaseController {
     }
 
     @Del("/:id/role/:roleId")
-    public async deleteRole(@IncPkey() id: number, @IncPkey() roleId: Number) {
+    public async deleteRole(@IncPkey() id: number, @IncPkey() roleId: number) {
 
         const rel = await UserToRole.where({
             user_id: id,
