@@ -38,7 +38,7 @@ export function Resource(resource: string, permission: string = "*") {
         metadata.Resource = resource;
         metadata.Permission = permission;
     });
-}
+} 
 
 /**
  * 

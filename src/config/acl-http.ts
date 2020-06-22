@@ -6,9 +6,11 @@ function dir(path: string) {
 }
 module.exports = {
     system: {
-        controllers: [dir("./controllers")],
-        locales: [dir("./../locales")],
-        views: [dir("./../views")],
+        dirs:{
+            controllers: [dir("./../controllers")],
+            locales: [dir("./../locales")],
+            views: [dir("./../views")],
+        }
     },
     http: {
         middlewares: [
