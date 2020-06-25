@@ -37,7 +37,7 @@ export class LoginController extends BaseController {
     public async logout(req: express.Request)
     {
         const ssid: string = (req.get("X-ssid") as string) ?? req.query.ssid as string;
-        const sessionProvider = this.Container.resolve<SessionProvider>(SessionProvider);
+        const sessionProvider = await this.Container.resolve<SessionProvider>(SessionProvider);
         
         await sessionProvider.deleteSession(ssid);
 

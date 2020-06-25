@@ -12,7 +12,7 @@ import * as express from 'express';
  * @param next 
  */
 export function UserFromSession() {
-    return (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    const wrapper = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
 
         const ssid: string = (req.get("X-ssid") as string) ?? req.query.ssid as string;
 
@@ -24,7 +24,15 @@ export function UserFromSession() {
             }).catch(err => next(err));
         } else {
             req.User = null;
+            next();
         }
-    }
+    };
+
+    Object.defineProperty(wrapper, "name", {
+        value: "userFromSession",
+        writable: true
+    });	  
+
+    return wrapper;
 }
 

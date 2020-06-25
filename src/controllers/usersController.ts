@@ -13,7 +13,7 @@ import { InsertBehaviour} from "@spinajs/orm";
 export class UsersController extends BaseController {
 
 
-    @Get("")
+    @Get("/")
     @Permission("get")
     public async listUsers(@Query() search: UserSearchDto, @Query() limit: LimitDto, @Query() order: OrderDto) {
 
@@ -58,7 +58,7 @@ export class UsersController extends BaseController {
     }
 
 
-    @Get("/user/:id")
+    @Get("user/:id")
     @Permission("get")
     public async getUser(@IncPkey() id: number) {
         const user = await User.where({
@@ -69,7 +69,7 @@ export class UsersController extends BaseController {
         return new Ok(user);
     }
 
-    @Post("")
+    @Post("/")
     @Permission("put")
     public async addUser(@Body() user: UserDto) {
 
@@ -105,7 +105,7 @@ export class UsersController extends BaseController {
         return new Ok(entity);
     }
 
-    @Del("/:id")
+    @Del(":id")
     @Permission("delete")
     public async deleteUser(@IncPkey() id: number) {
 
@@ -116,7 +116,7 @@ export class UsersController extends BaseController {
         return new Ok();
     }
 
-    @Put("/:id")
+    @Put(":id")
     @Permission("put")
     public async updateUser(@Body() user: UserDto) {
 
@@ -129,7 +129,7 @@ export class UsersController extends BaseController {
         return new Ok();
     }
 
-    @Put("/:id/change-password")
+    @Put(":id/change-password")
     @Permission("put")
     public async updateUserPassword(@IncPkey() id: number, @Body() pwd: PasswordDto) {
 
@@ -148,7 +148,7 @@ export class UsersController extends BaseController {
         return new Ok();
     }
 
-    @Put("/:id/role/:roleId")
+    @Put(":id/role/:roleId")
     public async assignRole(@IncPkey() id: number, @IncPkey() roleId: number) {
  
         /**
@@ -163,7 +163,7 @@ export class UsersController extends BaseController {
         return new Ok();
     }
 
-    @Del("/:id/role/:roleId")
+    @Del(":id/role/:roleId")
     public async deleteRole(@IncPkey() id: number, @IncPkey() roleId: number) {
 
         const rel = await UserToRole.where({
