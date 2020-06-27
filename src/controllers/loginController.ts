@@ -5,77 +5,70 @@ import { AuthProvider, Session } from '@spinajs/acl';
 import { Autoinject } from '@spinajs/di';
 import { Configuration } from '@spinajs/configuration';
 
-@BasePath("auth")
+@BasePath('auth')
 export class LoginController extends BaseController {
+  @Autoinject()
+  protected Configuration: Configuration;
 
-    @Autoinject()
-    protected Configuration: Configuration;
+  @Post()
+  public async login(@Body() credentials: LoginDto) {
+    const auth = this.Container.resolve<AuthProvider>(AuthProvider);
+    const user = await auth.authenticate(credentials.Login, credentials.Password);
 
-    @Post()
-    public async login(@Body() credentials: LoginDto) {
+    if (user) {
+      const ttl = this.Configuration.get<number>('acl.session.expiration', 10);
+      const lifetime = new Date();
+      lifetime.setMinutes(lifetime.getMinutes() + ttl);
 
-        const auth = this.Container.resolve<AuthProvider>(AuthProvider);
-        const user = await auth.authenticate(credentials.Login, credentials.Password);
+      const uObject = {
+        Login: user.Login,
+        Email: user.Email,
+        NiceName: user.NiceName,
+        Metadata: user.Metadata.map(m => ({ Key: m.Key, Value: m.Value })),
+        Roles: user.Roles.map(r => _mapRole(r)),
+      };
 
-        if (user) {
-            const ttl = this.Configuration.get<number>("acl.session.expiration", 10);
-            const lifetime = new Date();
-            lifetime.setMinutes(lifetime.getMinutes() + ttl);
+      const session = new Session({
+        Data: uObject,
+        Expiration: lifetime,
+      });
 
-            const uObject = {
-                Login: user.Login,
-                Email: user.Email,
-                NiceName: user.NiceName,
-                Metadata: user.Metadata.map(m => ({ Key: m.Key, Value: m.Value })),
-                Roles: user.Roles.map(r => _mapRole(r))
-            };
+      const sessionProvider = await this.Container.resolve<SessionProvider>(SessionProvider);
+      await sessionProvider.updateSession(session);
 
-            const session = new Session({
-                Data: uObject,
-                Expiration: lifetime
-            });
-
-
-            const sessionProvider = await this.Container.resolve<SessionProvider>(SessionProvider);
-            await sessionProvider.updateSession(session);
-
-            return new CookieResponse("ssid", session.SessionId, ttl, uObject);
-        }
-
-        return new Forbidden({
-            error: {
-                message: "login or password incorrect"
-            }
-        });
-
-        function _mapRole(r : Role) : any{
-            if(r === null)
-            {
-                return null;
-            }
-
-            return {
-                Slug: r.Slug,
-                Resources: r.Resources.map(r => ({ Slug: r.Slug, Permissions: r.Permission.Permissions })),
-                Parent: _mapRole(r.Parent)
-            };
-        }
+      return new CookieResponse('ssid', session.SessionId, ttl, uObject);
     }
 
-    @Get()
-    public async logout(@Cookie() ssid: string) {
+    return new Forbidden({
+      error: {
+        message: 'login or password incorrect',
+      },
+    });
 
-        if (!ssid) {
-            return new Ok();
-        }
+    function _mapRole(r: Role): any {
+      if (r === null) {
+        return null;
+      }
 
-        const ttl = this.Configuration.get<number>("acl.session.expiration", 10);
-        const sessionProvider = await this.Container.resolve<SessionProvider>(SessionProvider);
-        await sessionProvider.deleteSession(ssid);
+      return {
+        Slug: r.Slug,
+        Resources: r.Resources.map(r => ({ Slug: r.Slug, Permission: r.Permission })),
+        Parent: _mapRole(r.Parent),
+      };
+    }
+  }
 
-        // send empty cookie to confirm session deletion
-        return new CookieResponse("ssid", null, ttl);
-
+  @Get()
+  public async logout(@Cookie() ssid: string) {
+    if (!ssid) {
+      return new Ok();
     }
 
+    const ttl = this.Configuration.get<number>('acl.session.expiration', 10);
+    const sessionProvider = await this.Container.resolve<SessionProvider>(SessionProvider);
+    await sessionProvider.deleteSession(ssid);
+
+    // send empty cookie to confirm session deletion
+    return new CookieResponse('ssid', null, ttl);
+  }
 }

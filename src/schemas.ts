@@ -1,4 +1,4 @@
 export const PkSchema = {
-    type: "number",
-    minimum : 0
-}
+  type: 'number',
+  minimum: 0,
+};

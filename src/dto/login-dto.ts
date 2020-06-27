@@ -1,19 +1,19 @@
-import { Schema } from "@spinajs/http";
+import { Schema } from '@spinajs/http';
 
 export const LoginDtoSchema = {
-    $schema: "http://json-schema.org/draft-07/schema#",
-    title: "User login DTO",
-    type: "object",
-    properties: {
-        Login: { type: "string", maxLength: 32 },
-        Password: { type: "string", maxLength: 32 },
-    },
-    required: ["Login", "Password"]
-}
+  $schema: 'http://json-schema.org/draft-07/schema#',
+  title: 'User login DTO',
+  type: 'object',
+  properties: {
+    Login: { type: 'string', maxLength: 32 },
+    Password: { type: 'string', maxLength: 32 },
+  },
+  required: ['Login', 'Password'],
+};
 
 @Schema(LoginDtoSchema)
 export class LoginDto {
-    public Login: string;
+  public Login: string;
 
-    public Password: string;
+  public Password: string;
 }
