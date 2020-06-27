@@ -1,11 +1,15 @@
-import { SessionProvider } from '@spinajs/acl';
+import { SessionProvider, Role } from '@spinajs/acl';
 import { LoginDto } from './../dto/login-dto';
-import { BaseController, BasePath, Post, Body, Forbidden, Ok, Get } from '@spinajs/http';
-import { AuthProvider } from '@spinajs/acl';
-import * as express from "express";
- 
+import { BaseController, BasePath, Post, Body, Forbidden, Ok, Get, Cookie, CookieResponse } from '@spinajs/http';
+import { AuthProvider, Session } from '@spinajs/acl';
+import { Autoinject } from '@spinajs/di';
+import { Configuration } from '@spinajs/configuration';
+
 @BasePath("auth")
 export class LoginController extends BaseController {
+
+    @Autoinject()
+    protected Configuration: Configuration;
 
     @Post()
     public async login(@Body() credentials: LoginDto) {
@@ -14,34 +18,64 @@ export class LoginController extends BaseController {
         const user = await auth.authenticate(credentials.Login, credentials.Password);
 
         if (user) {
+            const ttl = this.Configuration.get<number>("acl.session.expiration", 10);
+            const lifetime = new Date();
+            lifetime.setMinutes(lifetime.getMinutes() + ttl);
 
-            const sessionProvider = this.Container.resolve<SessionProvider>(SessionProvider);
-            await sessionProvider.updateSession({
-                SessionId: "s",
-                Expiration: null,
-                Data: user
+            const uObject = {
+                Login: user.Login,
+                Email: user.Email,
+                NiceName: user.NiceName,
+                Metadata: user.Metadata.map(m => ({ Key: m.Key, Value: m.Value })),
+                Roles: user.Roles.map(r => _mapRole(r))
+            };
+
+            const session = new Session({
+                Data: uObject,
+                Expiration: lifetime
             });
 
-            return new Ok(user);
-        }
 
+            const sessionProvider = await this.Container.resolve<SessionProvider>(SessionProvider);
+            await sessionProvider.updateSession(session);
+
+            return new CookieResponse("ssid", session.SessionId, ttl, uObject);
+        }
 
         return new Forbidden({
             error: {
                 message: "login or password incorrect"
             }
         });
+
+        function _mapRole(r : Role) : any{
+            if(r === null)
+            {
+                return null;
+            }
+
+            return {
+                Slug: r.Slug,
+                Resources: r.Resources.map(r => ({ Slug: r.Slug, Permissions: r.Permission.Permissions })),
+                Parent: _mapRole(r.Parent)
+            };
+        }
     }
 
     @Get()
-    public async logout(req: express.Request)
-    {
-        const ssid: string = (req.get("X-ssid") as string) ?? req.query.ssid as string;
+    public async logout(@Cookie() ssid: string) {
+
+        if (!ssid) {
+            return new Ok();
+        }
+
+        const ttl = this.Configuration.get<number>("acl.session.expiration", 10);
         const sessionProvider = await this.Container.resolve<SessionProvider>(SessionProvider);
-        
         await sessionProvider.deleteSession(ssid);
 
-        return new Ok();
+        // send empty cookie to confirm session deletion
+        return new CookieResponse("ssid", null, ttl);
+
     }
 
 }

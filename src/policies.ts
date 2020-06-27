@@ -18,7 +18,7 @@ export class AclPolicy extends BasePolicy {
             return false;
         }
 
-        const descriptor: IAclDescriptor = Reflect.getMetadata(ACL_CONTROLLER_DESCRIPTOR, (instance as any).prototype);
+        const descriptor: IAclDescriptor = Reflect.getMetadata(ACL_CONTROLLER_DESCRIPTOR, instance);
         let permission = descriptor.Permission ?? "*";
 
         // check if route has its own permission
