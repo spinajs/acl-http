@@ -12,7 +12,7 @@ export const UserDtoSchema = {
     Password: { type: 'string', maxLength: 32, minLength: 6 },
     NiceName: { type: 'string', maxLength: 64 },
   },
-  required: ['Email', 'Login', 'NiceName'],
+  required: ['Email', 'NiceName'],
 };
 
 @Schema(UserDtoSchema)

@@ -1,6 +1,6 @@
 {
   "name": "@spinajs/acl-http",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "framework acl extension for http module",
   "main": "lib/index.js",
   "private": false,
@@ -38,10 +38,10 @@
   "homepage": "https://github.com/spinajs/acl-http#readme",
   "dependencies": {
     "@spinajs/acl": "^1.0.1",
-    "@spinajs/di": "^1.0.18",
+    "@spinajs/di": "^1.0.19",
     "@spinajs/exceptions": "^1.0.3",
     "@spinajs/http": "^1.0.1",
-    "@spinajs/log": "^1.0.7",
+    "@spinajs/log": "^1.0.8",
     "@spinajs/orm": "^1.0.45",
     "acl": "^0.4.11",
     "argon2": "^0.26.2",

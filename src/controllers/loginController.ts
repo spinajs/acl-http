@@ -1,6 +1,6 @@
 import { SessionProvider, Role } from '@spinajs/acl';
 import { LoginDto } from './../dto/login-dto';
-import { BaseController, BasePath, Post, Body, Forbidden, Ok, Get, Cookie, CookieResponse } from '@spinajs/http';
+import { BaseController, BasePath, Post, Body, Ok, Get, Cookie, CookieResponse, Unauthorized } from '@spinajs/http';
 import { AuthProvider, Session } from '@spinajs/acl';
 import { Autoinject } from '@spinajs/di';
 import { Configuration } from '@spinajs/configuration';
@@ -39,7 +39,7 @@ export class LoginController extends BaseController {
       return new CookieResponse('ssid', session.SessionId, ttl, uObject);
     }
 
-    return new Forbidden({
+    return new Unauthorized({
       error: {
         message: 'login or password incorrect',
       },

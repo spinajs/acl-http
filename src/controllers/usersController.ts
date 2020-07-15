@@ -1,7 +1,6 @@
 import { PasswordDto } from './../dto/password-dto';
 import { UserDto } from './../dto/user-dto';
-import { User, AuthProvider, PasswordProvider, UserToRole } from '@spinajs/acl';
-import { UserSearchDto } from './../dto/user-search-dto';
+import { User,  PasswordProvider, UserToRole, Role } from '@spinajs/acl';
 import {
   BaseController,
   BasePath,
@@ -9,58 +8,61 @@ import {
   Get,
   Del,
   Put,
-  LimitDto,
   Query,
-  OrderDto,
   Ok,
   NotFound,
   Body,
   IncPkey,
+  Param
 } from '@spinajs/http';
 import { Resource, Permission } from '../decorators';
 import { InvalidArgument } from '@spinajs/exceptions';
 import { InsertBehaviour } from '@spinajs/orm';
+
+const OrderSchema = {
+  type: "string",
+  enum: ["asc", "dsc"]
+};
+
+
 
 @BasePath('users')
 @Resource('users')
 export class UsersController extends BaseController {
   @Get('/')
   @Permission('get')
-  public async listUsers(@Query() search: UserSearchDto, @Query() limit: LimitDto, @Query() order: OrderDto) {
+  public async listUsers(@Query() search: string, @Query({ type: "number", min: 1 }) page: number, @Query({ type: "number", min: 1 }) perPage: number, @Query() order: string, @Query(OrderSchema) orderDirection: string) {
     const query = User.all();
-
+    query.whereNull("DeletedAt");
+    
     if (search) {
-      query.where(function() {
-        if (search.Email) {
-          this.where('Email', 'like', search.Email);
-        }
-
-        if (search.Login) {
-          this.orWhere('Login', 'like', search.Login);
-        }
-
-        if (search.NiceName) {
-          this.orWhere('NiceName', 'like', search.NiceName);
-        }
+      query.where(function () {
+        this.where('Email', 'like', `%${search}%`);
+        this.orWhere('Login', 'like', `${search}%`);
+        this.orWhere('NiceName', 'like', `%${search}%`);
       });
     }
 
-    if (limit) {
-      query.skip(limit.Page * limit.PerPage).take(limit.PerPage);
+    if (page && perPage) {
+      query.skip((page - 1) * perPage).take(perPage);
     }
 
-    if (order) {
-      switch (order.Order) {
+    if (order && orderDirection) {
+      switch (orderDirection) {
         case 'asc':
-          query.orderBy(order.Column);
+          query.orderBy(order);
           break;
         case 'asc':
-          query.orderByDescending(order.Column);
+          query.orderByDescending(order);
           break;
       }
     }
 
+    query.populate("Roles").populate("Metadata");
+
     const result = await query;
+
+    result.forEach(r => delete r.Password);
 
     if (result.length === 0) {
       return new NotFound('no users met search criteria');
@@ -69,24 +71,23 @@ export class UsersController extends BaseController {
     return new Ok(result);
   }
 
-  @Get('user/:id')
+  @Get(':id')
   @Permission('get')
   public async getUser(@IncPkey() id: number) {
     const user = await User.where({
       Id: id,
-    })
+    }).whereNull("DeletedAt")
       .populate('Metadata')
-      .populate('Groups')
-      .populate('Roles');
+      .populate('Roles')
+      .firstOrFail();
+
     return new Ok(user);
   }
 
   @Post('/')
   @Permission('put')
   public async addUser(@Body() user: UserDto) {
-    const auth = this.Container.resolve<AuthProvider>(AuthProvider);
     const password = this.Container.resolve<PasswordProvider>(PasswordProvider);
-
     if (user.Password !== user.ConfirmPassword) {
       throw new InvalidArgument('password does not match');
     }
@@ -100,20 +101,16 @@ export class UsersController extends BaseController {
 
     hashedPassword = await password.hash(userPassword);
     const entity = new User({
-      Email: user.Login,
-      DisplayName: user.NiceName,
+      Email: user.Email,
+      Login: user.Login,
+      NiceName: user.NiceName,
       Password: hashedPassword,
       CreatedAt: new Date(),
     });
 
-    const exists = await auth.exists(entity);
-    if (exists) {
-      throw new InvalidArgument(`user already exists`);
-    }
-
     await entity.save();
 
-    return new Ok(entity);
+    return new Ok({ Id: entity.Id });
   }
 
   @Del(':id')
@@ -128,8 +125,8 @@ export class UsersController extends BaseController {
 
   @Put(':id')
   @Permission('put')
-  public async updateUser(@Body() user: UserDto) {
-    const entity = await User.findOrFail<User>(user.Id);
+  public async updateUser(@IncPkey() id: number, @Body() user: UserDto) {
+    const entity = await User.findOrFail<User>(id);
     entity.Email = user.Email;
     entity.NiceName = user.NiceName;
 
@@ -141,13 +138,13 @@ export class UsersController extends BaseController {
   @Put(':id/change-password')
   @Permission('put')
   public async updateUserPassword(@IncPkey() id: number, @Body() pwd: PasswordDto) {
-    if (pwd.NewPassword !== pwd.ConfirmPassword) {
+    if (pwd.Password !== pwd.ConfirmPassword) {
       throw new InvalidArgument('password does not match');
     }
 
     const entity = await User.findOrFail<User>(id);
     const password = this.Container.resolve<PasswordProvider>(PasswordProvider);
-    const hashedPassword = await password.hash(pwd.NewPassword);
+    const hashedPassword = await password.hash(pwd.Password);
 
     entity.Password = hashedPassword;
 
@@ -156,13 +153,17 @@ export class UsersController extends BaseController {
     return new Ok();
   }
 
-  @Put(':id/role/:roleId')
-  public async assignRole(@IncPkey() id: number, @IncPkey() roleId: number) {
+  @Put(':id/role/:slug')
+  @Permission('put')
+  public async assignRole(@IncPkey() id: number, @Param() slug: string) {
+
+    const role = await Role.where("Slug", slug).firstOrFail<Role>();
+
     /**
      * we done use relation, fk constraint guarantee valid data
      */
     const rel = new UserToRole();
-    rel.role_id = roleId;
+    rel.role_id = role.Id;
     rel.user_id = id;
 
     await rel.save(InsertBehaviour.OnDuplicateIgnore);
@@ -170,11 +171,13 @@ export class UsersController extends BaseController {
     return new Ok();
   }
 
-  @Del(':id/role/:roleId')
-  public async deleteRole(@IncPkey() id: number, @IncPkey() roleId: number) {
+  @Del(':id/role/:slug')
+  @Permission('del')
+  public async deleteRole(@IncPkey() id: number, @Param() slug: string) {
+    const role = await Role.where("Slug", slug).firstOrFail<Role>();
     const rel = await UserToRole.where({
       user_id: id,
-      role_id: roleId,
+      role_id: role.Id,
     }).first<UserToRole>();
 
     if (rel) {

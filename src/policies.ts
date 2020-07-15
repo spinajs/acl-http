@@ -2,6 +2,7 @@ import { BasePolicy, IController, IRoute } from '@spinajs/http';
 import { IAclDescriptor } from './interfaces';
 import { ACL_CONTROLLER_DESCRIPTOR } from './decorators';
 import * as express from 'express';
+import { AuthenticationFailed, Forbidden } from "@spinajs/exceptions";
 
 export class AclPolicy extends BasePolicy {
   public isEnabled(_action: IRoute, _instance: IController): boolean {
@@ -11,7 +12,7 @@ export class AclPolicy extends BasePolicy {
 
   public async execute(req: express.Request, action: IRoute, instance: IController) {
     if (!req.User) {
-      return false;
+      throw new AuthenticationFailed();
     }
 
     const descriptor: IAclDescriptor = Reflect.getMetadata(ACL_CONTROLLER_DESCRIPTOR, instance);
@@ -22,6 +23,8 @@ export class AclPolicy extends BasePolicy {
       permission = descriptor.Routes.get(action.Method).Permission;
     }
 
-    return req.User.isAllowed(descriptor.Resource, permission);
+    if (!req.User.isAllowed(descriptor.Resource, permission)) {
+      throw new Forbidden();
+    }
   }
-}
+} 
